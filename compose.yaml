@@ -7,16 +7,27 @@ services:
       inventory-api:
         condition: service_started
 
-  #inventory-api:
+  inventory-api:
+    build: ./inventory-api
+    env_file:
+    - .env
+    ## environment > env_file > os.getenv()
+    environment:
+      DB_HOST: inventory-db
+      DB_NAME: ${MYSQL_DATABASE}
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+
 
   inventory-db:
-    image: postgres:16
+    image: mysql:8.0
     env_file:
       - .env
     volumes:
-      - inventory_data:/var/lib/postgresql/data
+      - inventory_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 5
