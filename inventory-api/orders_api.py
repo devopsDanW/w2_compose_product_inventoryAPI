@@ -1,14 +1,36 @@
 from flask import Flask, jsonify, request
 import mysql.connector
 import os
-import time
+
 ## logging
+import json
+import time
 import logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
+from datetime import datetime, timezone
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        return json.dumps(log_entry)
+
+handler = logging.StreamHandler()
+handler.setFormatter(JsonFormatter())
+
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logger = logging.getLogger(__name__)
+
+
+# import logging
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(asctime)s %(levelname)s %(message)s"
+# )
+# logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
