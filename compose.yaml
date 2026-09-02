@@ -5,7 +5,7 @@ services:
       - "8080:80"
     depends_on:
       inventory-api:
-        condition: service_started
+        condition: service_healthy
 
   inventory-api:
     build: ./inventory-api

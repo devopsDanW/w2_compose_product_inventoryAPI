@@ -4,7 +4,6 @@ import os
 
 ## logging
 import json
-import time
 import logging
 from datetime import datetime, timezone
 
@@ -47,38 +46,29 @@ def get_connection():
     return mysql.connector.connect(**db_config)
 
 
-def init_db_with_retry(max_retries=10, delay=3):
-    last_error = None
-    for _ in range(max_retries):
-        try:
-            connection = get_connection()
-            cursor = connection.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS orders (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    customer_name VARCHAR(100) NOT NULL,
-                    product_name VARCHAR(100) NOT NULL,
-                    quantity INT NOT NULL,
-                    status VARCHAR(50) NOT NULL
-                )
-            """)
-            ## add inventory table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS product_stock (
-                    product_id INT PRIMARY KEY,
-                    quantity INT NOT NULL DEFAULT 0
-                )
-            """)
+def init_db():
+    connection = get_connection()
+    cursor = connection.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            customer_name VARCHAR(100) NOT NULL,
+            product_name VARCHAR(100) NOT NULL,
+            quantity INT NOT NULL,
+            status VARCHAR(50) NOT NULL
+        )
+    """)
+    ## add inventory table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS product_stock (
+            product_id INT PRIMARY KEY,
+            quantity INT NOT NULL DEFAULT 0
+        )
+    """)
 
-            connection.commit()
-            cursor.close()
-            connection.close()
-            return
-        except Exception as e:
-            last_error = e
-            time.sleep(delay)
-    raise last_error
-
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -164,5 +154,5 @@ def get_inventory(product_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    init_db_with_retry()
+    init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)
