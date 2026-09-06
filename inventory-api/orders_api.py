@@ -155,4 +155,5 @@ def get_inventory(product_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000) # nosec B104 - must bind all interfaces so catalogue-web can reach inventory-api container over the docker network, as 127.0.0.1 is loopback
+
