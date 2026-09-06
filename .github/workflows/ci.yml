@@ -1,0 +1,40 @@
+name: consumer-security-pipeline
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  dockerfile-lint:
+    name: Lint Dockerfile with hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: catalogue-web/Dockerfile
+      - uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: inventory-api/Dockerfile
+
+  python-sast:
+    name: Check python code with bandit
+    needs: dockerfile-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install bandit==1.7.9
+      - name: Run bandit
+        run: bandit -r . -ll
+
+  security-scan:
+    needs: python-sast
+    uses: devopsDanW/gh_actions_shared/.github/workflows/security-scan.yml@v1.1.0
+    with:
+      severity: "CRITICAL,HIGH"
+
+
