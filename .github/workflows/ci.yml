@@ -27,9 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-      - run: pip install bandit==1.7.9
         with:
           python-version: "3.12"
+      - run: pip install bandit==1.7.9
       - name: Run bandit
         run: bandit -r . -ll
 
