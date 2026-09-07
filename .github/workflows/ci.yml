@@ -40,3 +40,23 @@ jobs:
       severity: "CRITICAL,HIGH"
 
 
+  sbom:
+    needs: dockerfile-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t inventory-api:ci inventory-api/
+      - run: docker build -t catalogue-web:ci catalogue-web/
+      - name: install trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.74.0
+      - name: generate sbom for inventory-api
+        run: trivy image --format spdx-json --output inventory-api-sbom.json inventory-api:ci
+      - name: generate sbom for catalogue-web
+        run: trivy image --format spdx-json --output catalogue-web-sbom.json catalogue-web:ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            inventory-api-sbom.json
+            catalogue-web-sbom.json
+
