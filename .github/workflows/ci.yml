@@ -1,0 +1,77 @@
+name: consumer-security-pipeline
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  dockerfile-lint:
+    name: Lint Dockerfile with hadolint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [inventory-api, catalogue-web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ${{ matrix.image }}/Dockerfile
+
+  python-sast:
+    name: Check python code with bandit
+    needs: dockerfile-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install bandit==1.7.9
+      - name: Run bandit
+        run: bandit -r . -ll
+
+  security-scan:
+    needs: python-sast
+    uses: devopsDanW/gh_actions_shared/.github/workflows/security-scan.yml@v1.1.0
+    with:
+      severity: "CRITICAL,HIGH"
+
+  security-check-critical-high:
+    uses: devopsDanW/gh_actions_shared/.github/workflows/security-scan.yml@v1.1.0
+    with:
+      scan_path: "severity-check"
+      severity: "CRITICAL,HIGH"
+
+  security-check-critical:
+    uses: devopsDanW/gh_actions_shared/.github/workflows/security-scan.yml@v1.1.0
+    with:
+      scan_path: "severity-check"
+      severity: "CRITICAL"
+
+
+  sbom:
+    needs: dockerfile-lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [inventory-api, catalogue-web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: docker build -t ${{ matrix.image }}:ci ${{ matrix.image }}/
+
+      - name: install trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.74.0
+
+      - name: generate sbom for ${{ matrix.image }}
+        run: trivy image --format spdx-json --output ${{ matrix.image }}-sbom.json ${{ matrix.image }}:ci
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.image }}
+          path: ${{ matrix.image }}-sbom.json
+
+

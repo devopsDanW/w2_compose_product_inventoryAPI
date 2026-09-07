@@ -1,0 +1,41 @@
+services:
+  catalogue-web:
+    build: ./catalogue-web
+    ports:
+      - "8080:80"
+    depends_on:
+      inventory-api:
+        condition: service_healthy
+
+  inventory-api:
+    build: ./inventory-api
+    env_file:
+    - .env
+    ## environment > env_file > os.getenv()
+    environment:
+      DB_HOST: inventory-db
+      DB_NAME: ${MYSQL_DATABASE}
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+
+
+  inventory-db:
+    image: mysql:8.0
+    env_file:
+      - .env
+    volumes:
+      - inventory_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+volumes:
+  inventory_data:
+
+
+
